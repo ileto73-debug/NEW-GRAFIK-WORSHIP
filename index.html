@@ -486,7 +486,6 @@ async function loadSheet() {
       try {
         applySheetData(rows);
         console.log('Participants loaded:', participants.length);
-        loadSavedActiveRoles();
         setSyncStatus(true);
         syncMissingDates(rows[0]);
       } catch(parseErr) {
@@ -998,31 +997,18 @@ function setStatus(idx, statusCode) {
 }
 
 function setActiveRole(idx, role) {
-  // Активната роля е САМО за конкретна неделя — пази се в localStorage
-  if (!activeRoles[selectedWeek]) activeRoles[selectedWeek] = {};
-  activeRoles[selectedWeek][idx] = role;
-  // Запази в браузъра по име (за да остане след reload)
-  try {
-    const key = 'activeRole_' + participants[idx].name + '_w' + selectedWeek;
-    localStorage.setItem(key, role);
-  } catch(e) {}
+  // Сменя ПОСТОЯННАТА роля на участника — записва в Sheet-а, виждат всички
+  participants[idx].roles = [role];
+  // Обнови activeRoles за всички недели да отразяват новата роля
+  WEEKS.forEach((_, wi) => {
+    if (!activeRoles[wi]) activeRoles[wi] = {};
+    activeRoles[wi][idx] = role;
+  });
+  // Запази в Google Sheet (колона "Роля")
+  saveRoleToSheet(participants[idx].name, [role]);
+  buildPeopleGrid();
   renderTable();
-}
-
-// Зарежда запазените активни роли при стартиране
-function loadSavedActiveRoles() {
-  try {
-    participants.forEach((p, idx) => {
-      WEEKS.forEach((_, wi) => {
-        const key = 'activeRole_' + p.name + '_w' + wi;
-        const saved = localStorage.getItem(key);
-        if (saved) {
-          if (!activeRoles[wi]) activeRoles[wi] = {};
-          activeRoles[wi][idx] = saved;
-        }
-      });
-    });
-  } catch(e) {}
+  toast(`Роля променена: ${participants[idx].name} → ${ROLE_LABELS[role]||role}`);
 }
 
 function toggleLeader(idx) {
