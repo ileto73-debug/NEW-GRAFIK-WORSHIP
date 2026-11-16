@@ -1142,7 +1142,10 @@ function setStatus(idx, statusCode) {
   // Въпрос за репетицията — само когато участникът сам потвърждава
   const isOwn = !isAdmin && currentUser && currentUser.index === idx;
   const key = selectedWeek + ':' + idx;
-  if (status === 'yes' && isOwn && !(weekRehearsal[selectedWeek]||new Set()).has(idx) && !rehearsalAsked.has(key)) {
+  // Въпросът излиза само за хората от секция „Хвалители“
+  const wRoles = (activeRoles[selectedWeek]||{})[idx] || participants[idx].roles || [];
+  const isWorshipper = (Array.isArray(wRoles) ? wRoles : [wRoles]).some(r => ROLE_GROUPS.worship.roles.includes(r));
+  if (status === 'yes' && isOwn && isWorshipper && !(weekRehearsal[selectedWeek]||new Set()).has(idx) && !rehearsalAsked.has(key)) {
     rehearsalAsked.add(key);
     askRehearsal(idx);
   }
